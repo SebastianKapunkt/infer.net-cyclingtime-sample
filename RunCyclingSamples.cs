@@ -11,6 +11,7 @@ namespace cyclingtime
         {
             RunCyclingTime1();
             RunCyclingTime2();
+            RunCyclingTime3();
         }
 
         public static void RunCyclingTime1()
@@ -99,6 +100,49 @@ namespace cyclingtime
             Console.WriteLine(
                 "Probability that tomorrow's time is < 18 min: {0}",
                 cyclistPrediction.InferProbabilityTimeLessThan(18.0)
+            );
+        }
+
+        public static void RunCyclingTime3()
+        {
+            ModelDataMixed initPriors;
+            double[] trainingData =
+            new double[] { 13, 17, 16, 12, 13, 12, 14, 18, 16, 16, 27, 32 };
+
+            initPriors.AverageTimeDist = new Gaussian[] {
+                new Gaussian(15.0, 100.0), //O
+                new Gaussian(30.0, 100.0) //E
+            };
+
+            initPriors.TrafficNoiseDist = new Gamma[] {
+                new Gamma(2.0, 0.5), //O
+                new Gamma(2.0, 0.5) //E
+            };
+
+            initPriors.MixingDist = new Dirichlet(1, 1);
+            CyclistMixedTraining cyclistMixedTraining = new CyclistMixedTraining();
+            cyclistMixedTraining.CreateModel();
+            cyclistMixedTraining.SetModelData(initPriors);
+            ModelDataMixed posteriors = cyclistMixedTraining.InferModelData(trainingData);
+            //Print results
+            Console.WriteLine("Average time distribution 1 = {0:f2}", posteriors.AverageTimeDist[0]);
+            Console.WriteLine("Average time distribution 2 = {0:f2}", posteriors.AverageTimeDist[1]);
+            Console.WriteLine("Noise distribution 1 = {0:f2}", posteriors.TrafficNoiseDist[0]);
+            Console.WriteLine("Noise distribution 2 = {0:f2}", posteriors.TrafficNoiseDist[1]);
+            Console.WriteLine("Mixing coefficient distribution = {0:f2}", posteriors.MixingDist);
+
+            CyclistMixedPrediction cyclistMixedPrediction = new CyclistMixedPrediction();
+            cyclistMixedPrediction.CreateModel();
+            cyclistMixedPrediction.SetModelData(posteriors);
+            Gaussian tomorrowsTime = cyclistMixedPrediction.InferTomorrowsTime();
+            double tomorrowsMean = tomorrowsTime.GetMean();
+            double tomorrowsStdDev = Math.Sqrt(tomorrowsTime.GetVariance());
+            //Print results
+            Console.WriteLine("Tomorrows average time: {0:f2}", tomorrowsMean);
+            Console.WriteLine("Tomorrows standard deviation: {0:f2}", tomorrowsStdDev);
+            Console.WriteLine(
+                "Probability that tomorrow's time is < 18 min: {0}",
+                cyclistMixedPrediction.InferTomorrowsTime()
             );
         }
     }
