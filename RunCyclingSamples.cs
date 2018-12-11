@@ -12,6 +12,7 @@ namespace cyclingtime
             RunCyclingTime1();
             RunCyclingTime2();
             RunCyclingTime3();
+            RunCyclingTime4();
         }
 
         public static void RunCyclingTime1()
@@ -144,6 +145,39 @@ namespace cyclingtime
                 "Probability that tomorrow's time is < 18 min: {0}",
                 cyclistMixedPrediction.InferTomorrowsTime()
             );
+        }
+
+        public static void RunCyclingTime4()
+        {
+            double[] trainingData =
+            new double[] { 13, 17, 16, 12, 13, 12, 14, 18, 16, 16, 27, 32 };
+            ModelData initPriors = new ModelData(
+            Gaussian.FromMeanAndPrecision(15.0, 0.01),
+            Gamma.FromShapeAndScale(2.0, 0.5));
+            CyclistWithEvidence cyclistWithEvidence = new CyclistWithEvidence();
+            cyclistWithEvidence.CreateModel();
+            cyclistWithEvidence.SetModelData(initPriors);
+
+            double logEvidence = cyclistWithEvidence.InferEvidence(trainingData);
+
+            ModelDataMixed initPriorsMixed;
+            initPriorsMixed.AverageTimeDist = new Gaussian[] {
+                new Gaussian(15.0, 100),
+                new Gaussian(30.0, 100) 
+            };
+            initPriorsMixed.TrafficNoiseDist = new Gamma[] {
+                new Gamma(2.0, 0.5),
+                new Gamma(2.0, 0.5) 
+            };
+            initPriorsMixed.MixingDist = new Dirichlet(1, 1);
+            CyclistMixedWithEvidence cyclistMixedWithEvidence =
+            new CyclistMixedWithEvidence();
+            cyclistMixedWithEvidence.CreateModel();
+            cyclistMixedWithEvidence.SetModelData(initPriorsMixed);
+            double logEvidenceMixed = cyclistMixedWithEvidence.InferEvidence(trainingData);
+            //Display results
+            Console.WriteLine("Log evidence for single Gaussian: {0:f2}", logEvidence);
+            Console.WriteLine("Log evidence for mixture of two Gaussian: {0:f2}", logEvidenceMixed);
         }
     }
 }
