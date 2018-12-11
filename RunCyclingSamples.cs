@@ -13,6 +13,7 @@ namespace cyclingtime
             RunCyclingTime2();
             RunCyclingTime3();
             RunCyclingTime4();
+            RunCyclingTime5();
         }
 
         public static void RunCyclingTime1()
@@ -163,11 +164,11 @@ namespace cyclingtime
             ModelDataMixed initPriorsMixed;
             initPriorsMixed.AverageTimeDist = new Gaussian[] {
                 new Gaussian(15.0, 100),
-                new Gaussian(30.0, 100) 
+                new Gaussian(30.0, 100)
             };
             initPriorsMixed.TrafficNoiseDist = new Gamma[] {
                 new Gamma(2.0, 0.5),
-                new Gamma(2.0, 0.5) 
+                new Gamma(2.0, 0.5)
             };
             initPriorsMixed.MixingDist = new Dirichlet(1, 1);
             CyclistMixedWithEvidence cyclistMixedWithEvidence =
@@ -178,6 +179,73 @@ namespace cyclingtime
             //Display results
             Console.WriteLine("Log evidence for single Gaussian: {0:f2}", logEvidence);
             Console.WriteLine("Log evidence for mixture of two Gaussian: {0:f2}", logEvidenceMixed);
+        }
+
+        static void RunCyclingTime5()
+        {
+            double[] trainingData1 = new double[] {
+                13, 17, 16, 12, 13, 12, 14, 18, 16, 16, 27, 32
+            };
+            double[] trainingData2 = new double[] {
+                16, 18, 21, 15, 17, 22, 28, 16, 19, 33, 20, 31
+            };
+
+            ModelData initPriors = new ModelData(new Gaussian(15.0, 100.0),
+            new Gamma(2.0, 0.5));
+
+            //Train the model
+            TwoCyclistsTraining cyclistsTraining = new TwoCyclistsTraining();
+            cyclistsTraining.CreateModel();
+            cyclistsTraining.SetModelData(initPriors);
+            ModelData[] posteriors1 = cyclistsTraining.InferModelData(
+                trainingData1,
+                trainingData2
+            );
+
+            //Print results
+            Console.WriteLine(
+                "Cyclist1 average travel time: {0:f2}",
+                posteriors1[0].AverageTimeDist
+            );
+            Console.WriteLine(
+                "Cyclist1 traffic noise: {0:f2}",
+                posteriors1[0].TrafficNoiseDist
+            );
+            Console.WriteLine(
+                "Cyclist2 average travel time: {0:f2}",
+                posteriors1[1].AverageTimeDist
+            );
+            Console.WriteLine(
+                "Cyclist2 traffic noise: {0:f2}",
+                posteriors1[1].TrafficNoiseDist
+            );
+
+            TwoCyclistsPrediction cyclistsPrediction = new TwoCyclistsPrediction();
+            cyclistsPrediction.CreateModel();
+            cyclistsPrediction.SetModelData(posteriors1);
+            Gaussian[] posteriors2 = cyclistsPrediction.InferTomorrowsTime();
+            //Print results
+            
+            Console.WriteLine(
+                "Cyclist1 tomorrow's travel time: {0:f2}",
+                posteriors2[0]
+            );
+            Console.WriteLine(
+                "Cyclist2 tomorrow's travel time: {0:f2}",
+                posteriors2[1]
+            );
+
+            Gaussian timeDifference = cyclistsPrediction.InferTimeDifference();
+            Bernoulli cyclist1IsFaster = cyclistsPrediction.InferCyclist1IsFaster();
+
+            Console.WriteLine(
+                "Time difference: {0:f2}",
+                timeDifference
+            );
+            Console.WriteLine(
+                "Probability that cyclist 1 is faster: {0:f4}",
+                cyclist1IsFaster
+            );
         }
     }
 }
